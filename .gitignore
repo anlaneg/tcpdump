@@ -17,4 +17,7 @@ tcpdump.1
 tcpdump-*.tar.gz
 version.c
 failure-outputs.txt
+.cproject
+.project
+.settings/
 autom4te.cache/
