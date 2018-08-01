@@ -252,6 +252,7 @@ init_print(netdissect_options *ndo, uint32_t localnet, uint32_t mask,
 	init_checksum();
 }
 
+//查需要显示的网络协议类型
 if_printer
 lookup_printer(int type)
 {
@@ -388,6 +389,7 @@ pretty_print_packet(netdissect_options *ndo, const struct pcap_pkthdr *h,
 	 */
 	ndo->ndo_snapend = sp + h->caplen;
 
+	//执行报文显示
 	hdrlen = (ndo->ndo_if_printer)(ndo, h, sp);
 
 	/*

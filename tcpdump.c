@@ -1228,6 +1228,7 @@ open_interface(const char *device, netdissect_options *ndo, char *ebuf)
 #endif /* HAVE_PCAP_OPEN */
 
 #ifdef HAVE_PCAP_CREATE
+	//创建device对应的pcap_t(由于configure脚本的处理，pcap_create_interface仅会编译一个实例进tcpdump)
 	pc = pcap_create(device, ebuf);
 	if (pc == NULL) {
 		/*
@@ -1279,6 +1280,7 @@ open_interface(const char *device, netdissect_options *ndo, char *ebuf)
 			error("%s: Can't set snapshot length: %s",
 			    device, pcap_statustostr(status));
 	}
+	//是否需要设置为混杂模式
 	status = pcap_set_promisc(pc, !pflag);
 	if (status != 0)
 		error("%s: Can't set promiscuous mode: %s",
@@ -1462,6 +1464,7 @@ main(int argc, char **argv)
 	VFile = NULL;
 	WFileName = NULL;
 	dlt = -1;
+	//记录进程名称
 	if ((cp = strrchr(argv[0], '/')) != NULL)
 		ndo->program_name = program_name = cp + 1;
 	else
@@ -1601,6 +1604,7 @@ main(int argc, char **argv)
 			break;
 
 		case 'i':
+			//capture接口名称
 			device = optarg;
 			break;
 
@@ -1701,6 +1705,7 @@ main(int argc, char **argv)
 #endif /* HAVE_PCAP_SETDIRECTION */
 
 		case 'r':
+			//自哪个pcap文件中读取
 			RFileName = optarg;
 			break;
 
@@ -1781,6 +1786,7 @@ main(int argc, char **argv)
 			break;
 
 		case 'W':
+			//向哪个pcap文件中写入
 			Wflag = atoi(optarg);
 			if (Wflag <= 0)
 				error("invalid number of output files %s", optarg);
@@ -1822,6 +1828,7 @@ main(int argc, char **argv)
 			break;
 
 		case '#':
+			//显示收到的报文编号
 			ndo->ndo_packet_number = 1;
 			break;
 
@@ -1989,6 +1996,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "Warning: interface names might be incorrect\n");
 #endif
 	} else {
+		//此时需要自接口capture报文
 		/*
 		 * We're doing a live capture.
 		 */
@@ -2012,7 +2020,7 @@ main(int argc, char **argv)
 			 * Use whatever interface pcap_lookupdev()
 			 * chooses.
 			 */
-			device = pcap_lookupdev(ebuf);
+			device = pcap_lookupdev(ebuf);//取首个设备，如果能找到的话
 			if (device == NULL)
 				error("%s", ebuf);
 #endif
@@ -2945,7 +2953,7 @@ dump_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 static void
 print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 {
-	++packets_captured;
+	++packets_captured;//收到报文数
 
 	++infodelay;
 

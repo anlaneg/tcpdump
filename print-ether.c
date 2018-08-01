@@ -271,6 +271,7 @@ recurse:
  * of the packet off the wire, and 'h->caplen' is the number
  * of bytes actually captured.
  */
+//以太报显示（报文起始位置为以太头）
 u_int
 ether_if_print(netdissect_options *ndo, const struct pcap_pkthdr *h,
                const u_char *p)
