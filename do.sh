@@ -30,9 +30,10 @@ abort_dir_not_exist "../libpcap" "need 'libpcap' directory"
 
 abort_file_not_exist "../tcpdump/do.sh" "need tcpdump/do.sh file"
 
+export CFLAGS=-g
 diff_str=`diff -Nu ../tcpdump/do.sh $0`
 if [ "X$diff_str" == "X" ];
 then
-	(echo "do build libpcap" ; cd ../libpcap ; ./configure ; make ;)
-	(echo "do build tcpdump" ; cd ../tcpdump ; ./configure ; make ;)
+	(echo "do build libpcap" ; cd ../libpcap ; if [ ! -e Makefile ];then ./configure ; fi; make ;)
+	(echo "do build tcpdump" ; cd ../tcpdump ; if [ ! -e Makefile ]; then ./configure ; fi; make ;)
 fi;
