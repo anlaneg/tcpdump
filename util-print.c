@@ -253,6 +253,7 @@ ts_hmsfrac_print(netdissect_options *ndo, int sec, int usec)
 		break;
 	}
 #else
+	//时.分.秒.微秒
 	ND_PRINT("%02d:%02d:%02d.%06u", sec / 3600, (sec % 3600) / 60,
 	    sec % 60, usec);
 #endif
@@ -308,9 +309,10 @@ ts_print(netdissect_options *ndo,
 		break;
 
 	case 1: /* No time stamp */
-		break;
+		break;//不显示时间
 
 	case 2: /* Unix timeval style */
+		//显示为秒.微秒
 		ts_unix_print(ndo, tvp->tv_sec, tvp->tv_usec);
 		ND_PRINT(" ");
 		break;

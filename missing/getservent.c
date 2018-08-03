@@ -92,6 +92,7 @@ endservent(void)
     _serv_stayopen = 0;
 }
 
+//分析service文件/etc/services
 struct servent *
 getservent(void)
 {
@@ -105,25 +106,30 @@ again:
     if ((p = fgets(line, BUFSIZ, servf)) == NULL)
         return (NULL);
     if (*p == '#')
-        goto again;
+        goto again;//跳过空行
+    //解决行尾注释问题
     cp = strpbrk(p, "#\n");
     if (cp == NULL)
         goto again;
     *cp = '\0';
-    serv.s_name = p;
+    serv.s_name = p;//首个以" \t"分隔的为协议名称
     p = strpbrk(p, " \t");
     if (p == NULL)
         goto again;
     *p++ = '\0';
+
+    //跳过空字符
     while (*p == ' ' || *p == '\t')
         p++;
     cp = strpbrk(p, ",/");
     if (cp == NULL)
         goto again;
     *cp++ = '\0';
-    serv.s_port = htons((u_short)atoi(p));
-    serv.s_proto = cp;
+    serv.s_port = htons((u_short)atoi(p));//第二个字段是端口号，其以",/"来结束
+    serv.s_proto = cp;//第二个字段中的后半部分是协议名
     q = serv.s_aliases = serv_aliases;
+
+    //分析别名（这是第三个字段）
     cp = strpbrk(cp, " \t");
     if (cp != NULL)
         *cp++ = '\0';

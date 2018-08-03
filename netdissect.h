@@ -173,6 +173,7 @@ typedef u_int (*if_printer) IF_PRINTER_ARGS;
 
 struct netdissect_options {
   int ndo_bflag;		/* print 4 byte ASes in ASDOT notation */
+  //显示以太头
   int ndo_eflag;		/* print ethernet header */
   int ndo_fflag;		/* don't translate "foreign" IP address */
   int ndo_Kflag;		/* don't check IP, TCP or UDP checksums */
@@ -185,12 +186,14 @@ struct netdissect_options {
   int ndo_vflag;		/* verbosity level */
   int ndo_xflag;		/* print packet in hex */
   int ndo_Xflag;		/* print packet in hex/ASCII */
+  //按ascii形式显示报文
   int ndo_Aflag;		/* print packet only in ASCII observing TAB,
 				 * LF, CR and SPACE as graphical chars
 				 */
   int ndo_Hflag;		/* dissect 802.11s draft mesh standard */
   const char *ndo_protocol;	/* protocol */
   void *ndo_last_mem_p;		/* pointer to the last allocated memory chunk */
+  //行起始时是否显示收到的报文数
   int ndo_packet_number;	/* print a packet number in the beginning of line */
   int ndo_suppress_default_print; /* don't use default_print() for unknown packet types */
   int ndo_tstamp_precision;	/* requested time stamp precision */
@@ -212,7 +215,7 @@ struct netdissect_options {
   const u_char *ndo_snapend;
 
   /* pointer to the if_printer function */
-  if_printer ndo_if_printer;
+  if_printer ndo_if_printer;//报文显示函数
 
   /* pointer to void function to output stuff */
   void (*ndo_default_print)(netdissect_options *,

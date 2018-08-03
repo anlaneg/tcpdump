@@ -840,10 +840,12 @@ get_next_file(FILE *VFile, char *ptr)
 {
 	char *ret;
 
+	//自VFile中读取一行
 	ret = fgets(ptr, PATH_MAX, VFile);
 	if (!ret)
 		return NULL;
 
+	//将读取的这一行，看成是文件路径名称
 	if (ptr[strlen(ptr) - 1] == '\n')
 		ptr[strlen(ptr) - 1] = '\0';
 
@@ -1023,6 +1025,7 @@ copy_argv(char **argv)
 #define O_BINARY	0
 #endif
 
+//自文件中读取命令，跳过'#'开头的行
 static char *
 read_infile(char *fname)
 {
@@ -1492,15 +1495,15 @@ main(int argc, char **argv)
 	    (op = getopt_long(argc, argv, SHORTOPTS, longopts, NULL)) != -1)
 		switch (op) {
 
-		case 'a':
+		case 'a'://-a选项不处理
 			/* compatibility for old -a */
 			break;
 
 		case 'A':
-			++ndo->ndo_Aflag;
+			++ndo->ndo_Aflag;//采用字符形式显示报文
 			break;
 
-		case 'b':
+		case 'b'://仅对bgp协议生效
 			++ndo->ndo_bflag;
 			break;
 
@@ -1513,7 +1516,7 @@ main(int argc, char **argv)
 #endif /* defined(HAVE_PCAP_CREATE) || defined(_WIN32) */
 
 		case 'c':
-			cnt = atoi(optarg);
+			cnt = atoi(optarg);//收cnt个报文后退出
 			if (cnt <= 0)
 				error("invalid packet count %s", optarg);
 			break;
@@ -1870,6 +1873,7 @@ main(int argc, char **argv)
 		show_remote_devices_and_exit();
 #endif
 
+	//收包时间显示控制
 	switch (ndo->ndo_tflag) {
 
 	case 0: /* Default */
@@ -2029,6 +2033,7 @@ main(int argc, char **argv)
 		/*
 		 * Try to open the interface with the specified name.
 		 */
+		//打开指定的设备
 		pd = open_interface(device, ndo, ebuf);
 		if (pd == NULL) {
 			/*
@@ -2084,6 +2089,8 @@ main(int argc, char **argv)
 			}
 #endif /* !defined(HAVE_PCAP_CREATE) && defined(_WIN32) */
 		if (Lflag)
+			//List the known data link types for the interface, in the  speci‐
+            //fied  mode,  and exit.
 			show_dlts_and_exit(pd, device);
 		if (yflag_dlt >= 0) {
 #ifdef HAVE_PCAP_SET_DATALINK
@@ -2104,12 +2111,14 @@ main(int argc, char **argv)
 				      program_name, yflag_dlt_name);
 			(void)fflush(stderr);
 		}
+		//取快照长度
 		i = pcap_snapshot(pd);
 		if (ndo->ndo_snaplen < i) {
-			if (ndo->ndo_snaplen != 0)
+			if (ndo->ndo_snaplen != 0)//如果已配置，则报错
 				warning("snaplen raised from %d to %d", ndo->ndo_snaplen, i);
-			ndo->ndo_snaplen = i;
+			ndo->ndo_snaplen = i;//如果未配置，直接设置
 		} else if (ndo->ndo_snaplen > i) {
+			//如果过小，则更新
 			warning("snaplen lowered from %d to %d", ndo->ndo_snaplen, i);
 			ndo->ndo_snaplen = i;
 		}
@@ -2120,6 +2129,7 @@ main(int argc, char **argv)
                 }
 
 	}
+	//如果需要自文件中读取命令，则打开文件读取，否则从命令行读
 	if (infile)
 		cmdbuf = read_infile(infile);
 	else
@@ -2128,9 +2138,11 @@ main(int argc, char **argv)
 #ifdef HAVE_PCAP_SET_OPTIMIZER_DEBUG
 	pcap_set_optimizer_debug(dflag);
 #endif
+	//编译bpf规则到bpf代码
 	if (pcap_compile(pd, &fcode, cmdbuf, Oflag, netmask) < 0)
 		error("%s", pcap_geterr(pd));
 	if (dflag) {
+		//如果必要，dump bpf代码，并退出
 		bpf_dump(&fcode, dflag);
 		pcap_close(pd);
 		free(cmdbuf);
@@ -2146,6 +2158,7 @@ main(int argc, char **argv)
 	init_print(ndo, localnet, netmask, timezone_offset);
 
 #ifndef _WIN32
+	//注册收到信号，做进程退出
 	(void)setsignal(SIGPIPE, cleanup);
 	(void)setsignal(SIGTERM, cleanup);
 #endif /* _WIN32 */
@@ -2219,6 +2232,7 @@ DIAG_ON_CLANG(assign-enum)
 	}
 #endif /* _WIN32 */
 
+	//设置bpf规则
 	if (pcap_setfilter(pd, &fcode) < 0)
 		error("%s", pcap_geterr(pd));
 #ifdef HAVE_CAPSICUM
@@ -2241,6 +2255,7 @@ DIAG_ON_CLANG(assign-enum)
 		}
 	}
 #endif
+	//如果需要写入pcap文件，则打开对应的文件
 	if (WFileName) {
 		/* Do not exceed the default PATH_MAX for files. */
 		dumpinfo.CurrentFileName = (char *)malloc(PATH_MAX + 1);
@@ -2254,7 +2269,7 @@ DIAG_ON_CLANG(assign-enum)
 		else
 		  MakeFilename(dumpinfo.CurrentFileName, WFileName, 0, 0);
 
-		pdd = pcap_dump_open(pd, dumpinfo.CurrentFileName);
+		pdd = pcap_dump_open(pd, dumpinfo.CurrentFileName);//创建文件
 #ifdef HAVE_LIBCAP_NG
 		/* Give up CAP_DAC_OVERRIDE capability.
 		 * Only allow it to be restored if the -C or -G flag have been
@@ -2322,7 +2337,11 @@ DIAG_ON_CLANG(assign-enum)
 			pcap_dump_flush(pdd);
 #endif
 	} else {
+		//不写入dump文件，仅用于显示pcap文件
+
+		//dlt决定了capture到的报文具体格式，故需传给不同的解析函数进行处理
 		dlt = pcap_datalink(pd);
+		//最终会调用此函数完成报文显示
 		ndo->ndo_if_printer = get_if_printer(ndo, dlt);
 		callback = print_packet;
 		pcap_userdata = (u_char *)ndo;
@@ -2341,6 +2360,7 @@ DIAG_ON_CLANG(assign-enum)
 #endif
 
 	if (ndo->ndo_vflag > 0 && WFileName && !print) {
+		//仅写文件不dump显示
 		/*
 		 * When capturing to a file, if "--print" wasn't specified,
 		 *"-v" means tcpdump should, once per second,
@@ -2381,11 +2401,13 @@ DIAG_ON_CLANG(assign-enum)
 		 * the standard error on UN*X.
 		 */
 		if (!ndo->ndo_vflag && !WFileName) {
+			//未看到-v标记，且未写文件，显示提示可以用-v,-vv显示更详细的内容
 			(void)fprintf(stderr,
 			    "%s: verbose output suppressed, use -v or -vv for full protocol decode\n",
 			    program_name);
 		} else
 			(void)fprintf(stderr, "%s: ", program_name);
+		//显示当前监听的那个接口，采用什么样的link-type进行显示，capture的大小是多少字节
 		dlt = pcap_datalink(pd);
 		dlt_name = pcap_datalink_val_to_name(dlt);
 		if (dlt_name == NULL) {
@@ -2411,6 +2433,7 @@ DIAG_ON_CLANG(assign-enum)
 #endif	/* HAVE_CAPSICUM */
 
 	do {
+		//进入主loop,收包并处理
 		status = pcap_loop(pd, cnt, callback, pcap_userdata);
 		if (WFileName == NULL) {
 			/*
@@ -2427,7 +2450,7 @@ DIAG_ON_CLANG(assign-enum)
 			}
 			(void)fflush(stdout);
 		}
-                if (status == -2) {
+                if (status == -2) {//信号中断
 			/*
 			 * We got interrupted. If we are reading multiple
 			 * files (via -V) set these so that we stop.
@@ -2435,7 +2458,7 @@ DIAG_ON_CLANG(assign-enum)
 			VFileName = NULL;
 			ret = NULL;
 		}
-		if (status == -1) {
+		if (status == -1) {//出错处理
 			/*
 			 * Error.  Report it.
 			 */
@@ -2447,12 +2470,14 @@ DIAG_ON_CLANG(assign-enum)
 			 * We're doing a live capture.  Report the capture
 			 * statistics.
 			 */
+			//当前处于live capture,显示报文状态
 			info(1);
 		}
-		pcap_close(pd);
+		pcap_close(pd);//pd关闭
 		if (VFileName != NULL) {
 			ret = get_next_file(VFile, VFileLine);
 			if (ret) {
+				//存在next文件，开始处理
 				int new_dlt;
 
 				RFileName = VFileLine;
@@ -2467,7 +2492,7 @@ DIAG_ON_CLANG(assign-enum)
 				}
 #endif
 				new_dlt = pcap_datalink(pd);
-				if (new_dlt != dlt) {
+				if (new_dlt != dlt) {//dlt不相同，重新编译规则
 					/*
 					 * The new file has a different
 					 * link-layer header type from the
@@ -2505,7 +2530,7 @@ DIAG_ON_CLANG(assign-enum)
 				 * Set the filter on the new file.
 				 */
 				if (pcap_setfilter(pd, &fcode) < 0)
-					error("%s", pcap_geterr(pd));
+					error("%s", pcap_geterr(pd));//重新设置filter
 
 				/*
 				 * Report the new file.
@@ -2525,6 +2550,7 @@ DIAG_ON_CLANG(assign-enum)
 	}
 	while (ret != NULL);
 
+	//进程退出处理
 	free(cmdbuf);
 	pcap_freecode(&fcode);
 	exit_tcpdump(status == -1 ? 1 : 0);
@@ -2631,18 +2657,23 @@ info(int verbose)
 	if (!verbose)
 		fprintf(stderr, "%s: ", program_name);
 
+	//显示有多少报文被captured并显示
 	(void)fprintf(stderr, "%u packet%s captured", packets_captured,
 	    PLURAL_SUFFIX(packets_captured));
 	if (!verbose)
 		fputs(", ", stderr);
 	else
 		putc('\n', stderr);
+
+	//libpcap共收到多少报文
 	(void)fprintf(stderr, "%u packet%s received by filter", stats.ps_recv,
 	    PLURAL_SUFFIX(stats.ps_recv));
 	if (!verbose)
 		fputs(", ", stderr);
 	else
 		putc('\n', stderr);
+
+	//接口丢包数
 	(void)fprintf(stderr, "%u packet%s dropped by kernel", stats.ps_drop,
 	    PLURAL_SUFFIX(stats.ps_drop));
 	if (stats.ps_ifdrop != 0) {
@@ -2950,6 +2981,7 @@ dump_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 		info(0);
 }
 
+//此回调负责报文显示
 static void
 print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 {

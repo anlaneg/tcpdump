@@ -249,7 +249,7 @@ init_print(netdissect_options *ndo, uint32_t localnet, uint32_t mask,
 
 	thiszone = timezone_offset;
 	init_addrtoname(ndo, localnet, mask);
-	init_checksum();
+	init_checksum();//crc表
 }
 
 //查需要显示的网络协议类型
@@ -323,6 +323,7 @@ pretty_print_packet(netdissect_options *ndo, const struct pcap_pkthdr *h,
 	u_int hdrlen;
 	int invalid_header = 0;
 
+	//显示收到的报文数
 	if(ndo->ndo_packet_number)
 		ND_PRINT("%5u  ", packets_captured);
 
@@ -338,7 +339,7 @@ pretty_print_packet(netdissect_options *ndo, const struct pcap_pkthdr *h,
 		} else
 			ND_PRINT(",");
 		ND_PRINT(" len==0");
-	} else if (h->len < h->caplen) {
+	} else if (h->len < h->caplen) {//比capture的长度还要小，说明头数据有误
 		if (!invalid_header) {
 			invalid_header = 1;
 			ND_PRINT("[Invalid header:");
@@ -346,7 +347,7 @@ pretty_print_packet(netdissect_options *ndo, const struct pcap_pkthdr *h,
 			ND_PRINT(",");
 		ND_PRINT(" len(%u) < caplen(%u)", h->len, h->caplen);
 	}
-	if (h->caplen > MAXIMUM_SNAPLEN) {
+	if (h->caplen > MAXIMUM_SNAPLEN) {//超过支持的最大大小
 		if (!invalid_header) {
 			invalid_header = 1;
 			ND_PRINT("[Invalid header:");
@@ -378,7 +379,7 @@ pretty_print_packet(netdissect_options *ndo, const struct pcap_pkthdr *h,
 	 * Currently, there is no D-Bus printer, thus no need for
 	 * bigger lengths.
 	 */
-
+	//按格式要求写示报文时间
 	ts_print(ndo, &h->ts);
 
 	/*
@@ -443,6 +444,7 @@ pretty_print_packet(netdissect_options *ndo, const struct pcap_pkthdr *h,
 			/*
 			 * Include the link-layer header.
 			 */
+			//采用字符形式显示报文
 			ascii_print(ndo, sp, h->caplen);
 		} else {
 			/*
@@ -509,6 +511,7 @@ ndo_warning(netdissect_options *ndo, const char *fmt, ...)
 	}
 }
 
+//向stdout格式化显示数据
 static int
 ndo_printf(netdissect_options *ndo, const char *fmt, ...)
 {

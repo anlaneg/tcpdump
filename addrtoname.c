@@ -408,6 +408,7 @@ static const char hex[16] = {
 
 /* Find the hash node that corresponds the ether address 'ep' */
 
+//查询表enametable,如果其中存在ep,则返回，否则返回个空节点
 static struct enamemem *
 lookup_emem(netdissect_options *ndo, const u_char *ep)
 {
@@ -418,17 +419,21 @@ lookup_emem(netdissect_options *ndo, const u_char *ep)
 	j = (ep[2] << 8) | ep[3];
 	i = (ep[4] << 8) | ep[5];
 
+	//用i^j做hash
 	tp = &enametable[(i ^ j) & (HASHNAMESIZE-1)];
 	while (tp->e_nxt)
 		if (tp->e_addr0 == i &&
 		    tp->e_addr1 == j &&
-		    tp->e_addr2 == k)
+		    tp->e_addr2 == k)//检查tp->e_addr[012]是否与ep指向的mac地址相等
 			return tp;
 		else
-			tp = tp->e_nxt;
+			tp = tp->e_nxt;//如果不相等，则继续查找
+
+	//tp->e_next为空，此时tp是最后一个元素，填充它
 	tp->e_addr0 = i;
 	tp->e_addr1 = j;
 	tp->e_addr2 = k;
+	//并为tp申请一个新的next元素（使其为空）
 	tp->e_nxt = (struct enamemem *)calloc(1, sizeof(*tp));
 	if (tp->e_nxt == NULL)
 		(*ndo->ndo_error)(ndo, S_ERR_ND_MEM_ALLOC, "lookup_emem: calloc");
@@ -782,6 +787,7 @@ ipxsap_string(netdissect_options *ndo, u_short port)
 	return (tp->name);
 }
 
+//初始化service数组
 static void
 init_servarray(netdissect_options *ndo)
 {
@@ -790,11 +796,15 @@ init_servarray(netdissect_options *ndo)
 	int i;
 	char buf[sizeof("0000000000")];
 
+	//取每一个service
 	while ((sv = getservent()) != NULL) {
 		int port = ntohs(sv->s_port);
 		i = port & (HASHNAMESIZE-1);
+
+		//tcp的存入到tcp表中
 		if (strcmp(sv->s_proto, "tcp") == 0)
 			table = &tporttable[i];
+		//udp的存入到udp表中
 		else if (strcmp(sv->s_proto, "udp") == 0)
 			table = &uporttable[i];
 		else
@@ -844,6 +854,7 @@ static const struct eproto {
 	{ (char *)0, 0 }
 };
 
+//初始化以太网协议名称表
 static void
 init_eprotoarray(netdissect_options *ndo)
 {
@@ -931,6 +942,7 @@ static const struct etherlist {
  * it's already does most of the work for the ethernet address-to-name
  * translation, so we just pcap_next_etherent as a convenience.
  */
+//初始化以太网哈希表
 static void
 init_etherarray(netdissect_options *ndo)
 {
@@ -957,6 +969,7 @@ init_etherarray(netdissect_options *ndo)
 #endif
 
 	/* Hardwire some ethernet names */
+	//查询el->addr是否存在，如果不存在，将其插入
 	for (el = etherlist; el->name != NULL; ++el) {
 		tp = lookup_emem(ndo, el->addr);
 		/* Don't override existing name */
@@ -1219,6 +1232,7 @@ init_ipxsaparray(netdissect_options *ndo)
  * (i.e., to prevent blocking on the nameserver).  localnet is the IP address
  * of the local network.  mask is its subnet mask.
  */
+//初始化内置的名称转换表
 void
 init_addrtoname(netdissect_options *ndo, uint32_t localnet, uint32_t mask)
 {

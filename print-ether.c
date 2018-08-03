@@ -113,16 +113,20 @@ ether_hdr_print(netdissect_options *ndo,
 
 	ehp = (const struct ether_header *)bp;
 
+	//显示源mac,目的mac
 	ND_PRINT("%s > %s",
 		     etheraddr_string(ndo, ehp->ether_shost),
 		     etheraddr_string(ndo, ehp->ether_dhost));
 
+	//取协议类型或者长度
 	length_type = EXTRACT_BE_U_2(ehp->ether_length_type);
 	if (!ndo->ndo_qflag) {
 	        if (length_type <= MAX_ETHERNET_LENGTH_VAL) {
+	        	//802.3型报文（表示长度）
 		        ND_PRINT(", 802.3");
 			length = length_type;
 		} else
+				//表示类型
 		        ND_PRINT(", ethertype %s (0x%04x)",
 				       tok2str(ethertype_values,"Unknown", length_type),
                                        length_type);
@@ -134,6 +138,7 @@ ether_hdr_print(netdissect_options *ndo,
                         ND_PRINT(", %s", tok2str(ethertype_values,"Unknown Ethertype (0x%04x)", length_type));
         }
 
+	//显示报文长度
 	ND_PRINT(", length %u: ", length);
 }
 
@@ -145,6 +150,9 @@ ether_hdr_print(netdissect_options *ndo,
  *
  * FIXME: caplen can and should be derived from ndo->ndo_snapend and p.
  */
+//p指向的是以太网报文
+//length表示报文长度
+//此种情况下caplen与length相等
 u_int
 ether_print(netdissect_options *ndo,
             const u_char *p, u_int length, u_int caplen,
@@ -160,7 +168,7 @@ ether_print(netdissect_options *ndo,
 	ndo->ndo_protocol = "ether";
 	if (caplen < ETHER_HDRLEN) {
 		nd_print_trunc(ndo);
-		return (caplen);
+		return (caplen);//协议被截断
 	}
 	if (length < ETHER_HDRLEN) {
 		nd_print_trunc(ndo);
@@ -170,6 +178,7 @@ ether_print(netdissect_options *ndo,
 	if (ndo->ndo_eflag) {
 		if (print_encap_header != NULL)
 			(*print_encap_header)(ndo, encap_header_arg);
+		//显示以太头信息
 		ether_hdr_print(ndo, p, length);
 	}
 	orig_length = length;
@@ -191,6 +200,7 @@ recurse:
 	 * Is it (gag) an 802.3 encapsulation?
 	 */
 	if (length_type <= MAX_ETHERNET_LENGTH_VAL) {
+		//802.3类型帧
 		/* Try to print the LLC-layer header & higher layers */
 		llc_hdrlen = llc_print(ndo, p, length, caplen, &src, &dst);
 		if (llc_hdrlen < 0) {
@@ -204,6 +214,7 @@ recurse:
                 length_type == ETHERTYPE_8021Q9100 ||
                 length_type == ETHERTYPE_8021Q9200 ||
                 length_type == ETHERTYPE_8021QinQ) {
+		//vlan，或者QinQ封装的帧
 		/*
 		 * Print VLAN information, and then go back and process
 		 * the enclosed type field.
@@ -250,6 +261,7 @@ recurse:
 		}
 		hdrlen += llc_hdrlen;
 	} else {
+		//显示以太层负载
 		if (ethertype_print(ndo, length_type, p, length, caplen, &src, &dst) == 0) {
 			/* type not known, print raw packet */
 			if (!ndo->ndo_eflag) {
@@ -350,15 +362,15 @@ ethertype_print(netdissect_options *ndo,
 {
 	switch (ether_type) {
 
-	case ETHERTYPE_IP:
+	case ETHERTYPE_IP://ip显示
 	        ip_print(ndo, p, length);
 		return (1);
 
-	case ETHERTYPE_IPV6:
+	case ETHERTYPE_IPV6://ipv6显示
 		ip6_print(ndo, p, length);
 		return (1);
 
-	case ETHERTYPE_ARP:
+	case ETHERTYPE_ARP://arp,rarp
 	case ETHERTYPE_REVARP:
 	        arp_print(ndo, p, length, caplen);
 		return (1);
@@ -390,6 +402,7 @@ ethertype_print(netdissect_options *ndo,
 		isoclns_print(ndo, p + 1, length - 1);
 		return(1);
 
+	//pppoe报文显示
 	case ETHERTYPE_PPPOED:
 	case ETHERTYPE_PPPOES:
 	case ETHERTYPE_PPPOED2:
@@ -405,6 +418,7 @@ ethertype_print(netdissect_options *ndo,
 	        rrcp_print(ndo, p, length, src, dst);
 		return (1);
 
+	//ppp报文显示
 	case ETHERTYPE_PPP:
 		if (length) {
 			ND_PRINT(": ");
@@ -425,6 +439,7 @@ ethertype_print(netdissect_options *ndo,
 		cfm_print(ndo, p, length);
 		return (1);
 
+		//lldp报文显示
 	case ETHERTYPE_LLDP:
 		lldp_print(ndo, p, length);
 		return (1);
