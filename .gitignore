@@ -20,4 +20,5 @@ failure-outputs.txt
 .cproject
 .project
 .settings/
+dpdk-tcpdump
 autom4te.cache/
