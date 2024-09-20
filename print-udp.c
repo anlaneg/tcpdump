@@ -715,6 +715,7 @@ udp_print(netdissect_options *ndo, const u_char *bp, u_int length,
 		}
 	} else {
 		if (ulen > length)
+		    /*这里的输出不妥当，在分片情况下会输出错误信息，遇到这种情况，应添加分片校验。*/
 			ND_PRINT("UDP, bad length %u > %u",
 			    ulen, length);
 		else
